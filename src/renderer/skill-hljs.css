@@ -1,0 +1,94 @@
+@import 'highlight.js/styles/github.css';
+
+/* 仅详情预览：深色主题下使用 GitHub Dark 的 token 色（浅色由 github.css 提供） */
+html:not([data-theme='light']) .skill-code-pre .hljs {
+  color: #c9d1d9;
+  background: transparent;
+}
+
+html:not([data-theme='light']) .skill-code-pre .hljs-doctag,
+html:not([data-theme='light']) .skill-code-pre .hljs-keyword,
+html:not([data-theme='light']) .skill-code-pre .hljs-meta .hljs-keyword,
+html:not([data-theme='light']) .skill-code-pre .hljs-template-tag,
+html:not([data-theme='light']) .skill-code-pre .hljs-template-variable,
+html:not([data-theme='light']) .skill-code-pre .hljs-type,
+html:not([data-theme='light']) .skill-code-pre .hljs-variable.language_ {
+  color: #ff7b72;
+}
+
+html:not([data-theme='light']) .skill-code-pre .hljs-title,
+html:not([data-theme='light']) .skill-code-pre .hljs-title.class_,
+html:not([data-theme='light']) .skill-code-pre .hljs-title.class_.inherited__,
+html:not([data-theme='light']) .skill-code-pre .hljs-title.function_ {
+  color: #d2a8ff;
+}
+
+html:not([data-theme='light']) .skill-code-pre .hljs-attr,
+html:not([data-theme='light']) .skill-code-pre .hljs-attribute,
+html:not([data-theme='light']) .skill-code-pre .hljs-literal,
+html:not([data-theme='light']) .skill-code-pre .hljs-meta,
+html:not([data-theme='light']) .skill-code-pre .hljs-number,
+html:not([data-theme='light']) .skill-code-pre .hljs-operator,
+html:not([data-theme='light']) .skill-code-pre .hljs-variable,
+html:not([data-theme='light']) .skill-code-pre .hljs-selector-attr,
+html:not([data-theme='light']) .skill-code-pre .hljs-selector-class,
+html:not([data-theme='light']) .skill-code-pre .hljs-selector-id {
+  color: #79c0ff;
+}
+
+html:not([data-theme='light']) .skill-code-pre .hljs-regexp,
+html:not([data-theme='light']) .skill-code-pre .hljs-string,
+html:not([data-theme='light']) .skill-code-pre .hljs-meta .hljs-string {
+  color: #a5d6ff;
+}
+
+html:not([data-theme='light']) .skill-code-pre .hljs-built_in,
+html:not([data-theme='light']) .skill-code-pre .hljs-symbol {
+  color: #ffa657;
+}
+
+html:not([data-theme='light']) .skill-code-pre .hljs-comment,
+html:not([data-theme='light']) .skill-code-pre .hljs-code,
+html:not([data-theme='light']) .skill-code-pre .hljs-formula {
+  color: #8b949e;
+}
+
+html:not([data-theme='light']) .skill-code-pre .hljs-name,
+html:not([data-theme='light']) .skill-code-pre .hljs-quote,
+html:not([data-theme='light']) .skill-code-pre .hljs-selector-tag,
+html:not([data-theme='light']) .skill-code-pre .hljs-selector-pseudo {
+  color: #7ee787;
+}
+
+html:not([data-theme='light']) .skill-code-pre .hljs-subst {
+  color: #c9d1d9;
+}
+
+html:not([data-theme='light']) .skill-code-pre .hljs-section {
+  color: #1f6feb;
+  font-weight: bold;
+}
+
+html:not([data-theme='light']) .skill-code-pre .hljs-bullet {
+  color: #f2cc60;
+}
+
+html:not([data-theme='light']) .skill-code-pre .hljs-emphasis {
+  color: #c9d1d9;
+  font-style: italic;
+}
+
+html:not([data-theme='light']) .skill-code-pre .hljs-strong {
+  color: #c9d1d9;
+  font-weight: bold;
+}
+
+html:not([data-theme='light']) .skill-code-pre .hljs-addition {
+  color: #aff5b4;
+  background-color: #033a16;
+}
+
+html:not([data-theme='light']) .skill-code-pre .hljs-deletion {
+  color: #ffdcd7;
+  background-color: #67060c;
+}

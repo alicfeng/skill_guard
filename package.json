@@ -1,0 +1,91 @@
+{
+  "name": "skill-guard",
+  "version": "0.1.0",
+  "description": "Skill Guard 一款基于 electron 构建并支持管理和订阅 ai skills 的桌面管理工具",
+  "main": "electron/main.cjs",
+  "author": "AlicFeng",
+  "homepage": "https://github.com/alicfeng/skill_guard#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alicfeng/skill_guard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/alicfeng/skill_guard/issues"
+  },
+  "license": "MIT",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"wait-on tcp:127.0.0.1:5173 && electron .\"",
+    "build:renderer": "vite build",
+    "build": "vite build && electron-builder --publish never",
+    "build:mac": "vite build && electron-builder --mac --publish never",
+    "build:win": "vite build && electron-builder --win --publish never",
+    "build:linux:x64": "vite build && electron-builder --linux AppImage --x64 --publish never",
+    "build:linux:arm64": "vite build && electron-builder --linux AppImage --arm64 --publish never",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "fast-glob": "^3.3.3",
+    "highlight.js": "^11.11.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.skillguard.app",
+    "productName": "Skill Guard",
+    "publish": null,
+    "compression": "maximum",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*.cjs",
+      "build/icon.png"
+    ],
+    "icon": "build/icon.png",
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ]
+    },
+    "win": {
+      "electronLanguages": ["en-US", "zh-CN"],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "executableName": "SkillGuard"
+    },
+    "nsis": {
+      "shortcutName": "Skill Guard",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "linux": {
+      "electronLanguages": ["en-US", "zh-CN"],
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64", "arm64"]
+        }
+      ]
+    }
+  }
+}
