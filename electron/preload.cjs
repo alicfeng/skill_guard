@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('skillGuardApi', {
   _invoke: invoke,
   getUserProfile: () => invoke('app:userProfile'),
   getAppVersion: () => invoke('app:version'),
+  runAutoMaintenance: () => invoke('app:runAutoMaintenance'),
   loadConfig: () => invoke('config:load'),
   saveConfig: (cfg) => invoke('config:save', cfg),
   pickRepo: () => invoke('dialog:pickRepo'),

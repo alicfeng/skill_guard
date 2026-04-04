@@ -92,6 +92,8 @@ declare global {
       getUserProfile: () => Promise<UserProfile>;
       /** 与 package.json version 一致（Electron app.getVersion） */
       getAppVersion: () => Promise<string>;
+      /** 立即执行一轮：按需 git pull + 按需覆盖已安装技能 */
+      runAutoMaintenance: () => Promise<{ ok: boolean }>;
       loadConfig: () => Promise<AppConfig>;
       saveConfig: (cfg: AppConfig) => Promise<{ ok: boolean }>;
       pickRepo: () => Promise<string | null>;

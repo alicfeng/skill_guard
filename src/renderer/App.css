@@ -1570,7 +1570,7 @@ html[data-theme='light'] .skill-detail-modal .skill-code-frame {
 
 .mp-install-modal {
   width: 100%;
-  max-width: min(100%, 38rem);
+  max-width: min(100%, 42rem);
   border-radius: 16px;
   box-shadow:
     0 28px 64px rgba(0, 0, 0, 0.38),
@@ -1581,6 +1581,18 @@ html[data-theme='light'] .skill-detail-modal .skill-code-frame {
 /* 安装弹窗内自定义下拉需溢出面板，否则菜单被 .modal-panel overflow 裁切 */
 .mp-install-modal.modal-panel {
   overflow: visible;
+}
+
+/* 安装技能弹窗：隐藏正文区滚动条，仍可用滚轮/触控板滚动 */
+.mp-install-modal .modal-body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mp-install-modal .modal-body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 html[data-theme='light'] .mp-install-modal {
