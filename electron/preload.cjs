@@ -8,6 +8,7 @@ function invoke(channel, data) {
 contextBridge.exposeInMainWorld('skillGuardApi', {
   _invoke: invoke,
   getUserProfile: () => invoke('app:userProfile'),
+  getAppVersion: () => invoke('app:version'),
   loadConfig: () => invoke('config:load'),
   saveConfig: (cfg) => invoke('config:save', cfg),
   pickRepo: () => invoke('dialog:pickRepo'),

@@ -26,7 +26,7 @@ const api = window.skillGuardApi;
 
 /** 与主进程 `marketplace.cjs` 中内置默认一致，用于文案与占位 */
 const DEFAULT_MARKETPLACE_RECOMMEND_INDEX_URL =
-  'https://raw.githubusercontent.com/alicfeng/skill_box/refs/heads/main/sub.json';
+  'https://raw.githubusercontent.com/alicfeng/ai_skills_guard/refs/heads/main/subcribe.json';
 
 async function ipcListSkillTree(rootPath: string, skillRelPath: string, state: SkillRow['state']) {
   if (typeof api.listSkillTree === 'function') {
@@ -114,6 +114,37 @@ function skillMatchesGlobalSource(relPath: string, filter: GlobalSourceFilter): 
 
 function resolvedTheme(theme: AppConfig['theme'] | undefined): ThemeId {
   return theme === 'light' ? 'light' : 'dark';
+}
+
+function SettingsToggleRow({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  const labelId = useId();
+  return (
+    <div className="settings-item settings-item--toggle">
+      <span className="settings-item-label" id={labelId}>
+        {label}
+      </span>
+      <button
+        type="button"
+        className={['settings-toggle', checked ? 'settings-toggle--on' : ''].filter(Boolean).join(' ')}
+        role="switch"
+        aria-checked={checked}
+        aria-labelledby={labelId}
+        onClick={() => onChange(!checked)}
+      >
+        <span className="settings-toggle-track" aria-hidden="true">
+          <span className="settings-toggle-thumb" />
+        </span>
+      </button>
+    </div>
+  );
 }
 
 function collectDirRelPaths(nodes: SkillTreeNode[]): string[] {
@@ -210,6 +241,11 @@ export default function App() {
   const [recommendFetchErr, setRecommendFetchErr] = useState<string | null>(null);
   const [recommendUrlModalOpen, setRecommendUrlModalOpen] = useState(false);
   const [recommendUrlDraft, setRecommendUrlDraft] = useState('');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsDraftAutoUpdateSkills, setSettingsDraftAutoUpdateSkills] = useState(false);
+  const [settingsDraftAutoPull, setSettingsDraftAutoPull] = useState(false);
+  const [settingsDraftRecommendUrl, setSettingsDraftRecommendUrl] = useState('');
+  const [appVersion, setAppVersion] = useState<string | null>(null);
   /** 推荐条目添加中：`url + \\n + path` 区分同 URL 不同 path */
   const [recommendAddingKey, setRecommendAddingKey] = useState<string | null>(null);
   /** 推迟单击动作，避免与双击打开设置冲突 */
@@ -290,6 +326,15 @@ export default function App() {
     Promise.all([refreshConfig(), api.getUserProfile().then(setUserProfile)]).catch((e) =>
       setError(String(e)),
     );
+    void (async () => {
+      try {
+        if (typeof api.getAppVersion === 'function') {
+          setAppVersion(await api.getAppVersion());
+        }
+      } catch {
+        setAppVersion(null);
+      }
+    })();
   }, [refreshConfig]);
 
   useEffect(() => {
@@ -632,6 +677,39 @@ export default function App() {
       await api.saveConfig(next);
       setConfig(next);
       setRecommendUrlModalOpen(false);
+      setSettingsDraftRecommendUrl(recommendUrlDraft.trim());
+      if (sourcesListSubTab === 'recommend') {
+        void loadRecommendListForTab();
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  function openSettingsModal() {
+    if (!config) return;
+    setSettingsDraftAutoUpdateSkills(config.autoUpdateInstalledSkills === true);
+    setSettingsDraftAutoPull(config.autoPullMarketplaceSources === true);
+    setSettingsDraftRecommendUrl(config.marketplaceRecommendIndexUrl ?? '');
+    setSettingsOpen(true);
+  }
+
+  async function saveSettingsModal() {
+    setError(null);
+    try {
+      const base = config ?? (await api.loadConfig());
+      const next: AppConfig = {
+        ...base,
+        repos: base.repos ?? [],
+        marketplaceSources: base.marketplaceSources ?? [],
+        autoUpdateInstalledSkills: settingsDraftAutoUpdateSkills,
+        autoPullMarketplaceSources: settingsDraftAutoPull,
+        marketplaceRecommendIndexUrl: settingsDraftRecommendUrl.trim(),
+      };
+      await api.saveConfig(next);
+      setConfig(next);
+      setRecommendUrlDraft(settingsDraftRecommendUrl.trim());
+      setSettingsOpen(false);
       if (sourcesListSubTab === 'recommend') {
         void loadRecommendListForTab();
       }
@@ -747,8 +825,17 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [skillDetailOpen, closeSkillDetail]);
 
+  useEffect(() => {
+    if (!settingsOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setSettingsOpen(false);
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [settingsOpen]);
+
   const anyModalOpen = Boolean(
-    skillDetailOpen || marketplaceInstallOpen || recommendUrlModalOpen,
+    skillDetailOpen || marketplaceInstallOpen || recommendUrlModalOpen || settingsOpen,
   );
   useEffect(() => {
     const root = document.documentElement;
@@ -926,33 +1013,44 @@ export default function App() {
       </header>
 
       <nav className="tabs" aria-label="主导航">
-        <div className="tabs-tablist" role="tablist" aria-label="范围">
+        <div className="tabs-row">
+          <div className="tabs-tablist" role="tablist" aria-label="范围">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mainTab === 'global'}
+              className={`tab ${mainTab === 'global' ? 'active' : ''}`}
+              onClick={() => setMainTab('global')}
+            >
+              全局（{userProfile?.username ?? '…'}）
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mainTab === 'repo'}
+              className={`tab ${mainTab === 'repo' ? 'active' : ''}`}
+              onClick={() => setMainTab('repo')}
+            >
+              工程仓库
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mainTab === 'marketplace'}
+              className={`tab ${mainTab === 'marketplace' ? 'active' : ''}`}
+              onClick={() => setMainTab('marketplace')}
+            >
+              Skill Marketplace
+            </button>
+          </div>
           <button
             type="button"
-            role="tab"
-            aria-selected={mainTab === 'global'}
-            className={`tab ${mainTab === 'global' ? 'active' : ''}`}
-            onClick={() => setMainTab('global')}
+            className="tab tab-settings"
+            aria-label="Open settings"
+            disabled={!config}
+            onClick={() => openSettingsModal()}
           >
-            全局（{userProfile?.username ?? '…'}）
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mainTab === 'repo'}
-            className={`tab ${mainTab === 'repo' ? 'active' : ''}`}
-            onClick={() => setMainTab('repo')}
-          >
-            工程仓库
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mainTab === 'marketplace'}
-            className={`tab ${mainTab === 'marketplace' ? 'active' : ''}`}
-            onClick={() => setMainTab('marketplace')}
-          >
-            Skill Marketplace
+            Settings
           </button>
         </div>
       </nav>
@@ -1778,6 +1876,79 @@ export default function App() {
         </div>
       ) : null}
 
+      {settingsOpen ? (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onClick={() => setSettingsOpen(false)}
+        >
+          <div
+            className="modal-panel settings-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-head settings-modal-head">
+              <div className="modal-head-text">
+                <h2 id="settings-modal-title" className="modal-title">
+                  设置
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setSettingsOpen(false)}
+                aria-label="关闭"
+              >
+                <ModalCloseIcon />
+              </button>
+            </div>
+            <div className="modal-body settings-modal-body">
+              <SettingsToggleRow
+                label="自动更新已安装技能"
+                checked={settingsDraftAutoUpdateSkills}
+                onChange={setSettingsDraftAutoUpdateSkills}
+              />
+              <SettingsToggleRow
+                label="自动拉取订阅源技能"
+                checked={settingsDraftAutoPull}
+                onChange={setSettingsDraftAutoPull}
+              />
+              <div className="settings-item settings-item--stack">
+                <label className="settings-field-label" htmlFor="settings-recommend-json-url">
+                  订阅推荐源 JSON 的 URL
+                </label>
+                <input
+                  id="settings-recommend-json-url"
+                  type="url"
+                  className="settings-url-input"
+                  placeholder={DEFAULT_MARKETPLACE_RECOMMEND_INDEX_URL}
+                  value={settingsDraftRecommendUrl}
+                  onChange={(e) => setSettingsDraftRecommendUrl(e.target.value)}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </div>
+              <p className="settings-version-foot" role="status">
+                当前软件版本{' '}
+                <span className="settings-version-foot-num mono">
+                  {appVersion != null && appVersion !== '' ? `v${appVersion}` : '—'}
+                </span>
+              </p>
+              <div className="settings-modal-footer">
+                <button type="button" className="btn" onClick={() => setSettingsOpen(false)}>
+                  取消
+                </button>
+                <button type="button" className="btn primary" onClick={() => void saveSettingsModal()}>
+                  保存
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {recommendUrlModalOpen ? (
         <div
           className="modal-backdrop"
@@ -2292,17 +2463,19 @@ function MarketplaceSkillGrid({
           aria-labelledby={`mp-skill-src-title-${g.key}`}
         >
           <header className="mp-skill-source-head">
-            <div className="mp-skill-source-title-row">
-              <h4 className="mp-skill-source-title" id={`mp-skill-src-title-${g.key}`}>
-                {g.title}
-              </h4>
+            <div className="mp-skill-source-head-inner">
+              <div className="mp-skill-source-head-main">
+                <h4 className="mp-skill-source-title" id={`mp-skill-src-title-${g.key}`}>
+                  {g.title}
+                </h4>
+                <p className="mp-skill-source-url mono" title={g.url}>
+                  {g.url}
+                </p>
+              </div>
               <span className="mp-skill-source-count" aria-label={`${g.skills.length} 个技能`}>
                 {g.skills.length} 个技能
               </span>
             </div>
-            <p className="mp-skill-source-url mono" title={g.url}>
-              {g.url}
-            </p>
           </header>
           <div className="mp-grid">
             {g.skills.map((s) => (

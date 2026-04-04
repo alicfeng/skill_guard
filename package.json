@@ -1,6 +1,6 @@
 {
   "name": "skill-guard",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Skill Guard 一款基于 electron 构建并支持管理和订阅 ai skills 的桌面管理工具",
   "main": "electron/main.cjs",
   "author": "AlicFeng",

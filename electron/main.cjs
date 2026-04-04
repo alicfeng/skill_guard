@@ -24,17 +24,197 @@ function configPath() {
   return path.join(app.getPath('userData'), 'config.json');
 }
 
+/** 订阅源自动拉取：固定间隔（毫秒） */
+const AUTO_PULL_INTERVAL_MS = 30 * 60 * 1000;
+/** 启动后延迟再执行首次自动拉取/更新，避免与窗口初始化抢资源 */
+const AUTO_MAINTENANCE_STARTUP_DELAY_MS = 10000;
+
+function defaultConfig() {
+  return {
+    repos: [],
+    marketplaceSources: [],
+    marketplaceRecommendIndexUrl: '',
+    autoUpdateInstalledSkills: false,
+    autoPullMarketplaceSources: false,
+  };
+}
+
 function loadConfig() {
+  const defaults = defaultConfig();
   try {
     const p = configPath();
-    if (!fs.existsSync(p)) return { repos: [], marketplaceSources: [], marketplaceRecommendIndexUrl: '' };
+    if (!fs.existsSync(p)) return { ...defaults };
     const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-    if (!Array.isArray(data.repos)) data.repos = [];
-    if (!Array.isArray(data.marketplaceSources)) data.marketplaceSources = [];
-    if (typeof data.marketplaceRecommendIndexUrl !== 'string') data.marketplaceRecommendIndexUrl = '';
-    return data;
+    return {
+      repos: Array.isArray(data.repos) ? data.repos : defaults.repos,
+      marketplaceSources: Array.isArray(data.marketplaceSources)
+        ? data.marketplaceSources
+        : defaults.marketplaceSources,
+      marketplaceRecommendIndexUrl:
+        typeof data.marketplaceRecommendIndexUrl === 'string'
+          ? data.marketplaceRecommendIndexUrl
+          : defaults.marketplaceRecommendIndexUrl,
+      theme: data.theme === 'light' || data.theme === 'dark' ? data.theme : undefined,
+      autoUpdateInstalledSkills:
+        typeof data.autoUpdateInstalledSkills === 'boolean'
+          ? data.autoUpdateInstalledSkills
+          : defaults.autoUpdateInstalledSkills,
+      autoPullMarketplaceSources:
+        typeof data.autoPullMarketplaceSources === 'boolean'
+          ? data.autoPullMarketplaceSources
+          : defaults.autoPullMarketplaceSources,
+    };
   } catch {
-    return { repos: [], marketplaceSources: [], marketplaceRecommendIndexUrl: '' };
+    return { ...defaults };
+  }
+}
+
+/** @type {ReturnType<typeof setInterval> | null} */
+let autoMaintenanceIntervalId = null;
+/** @type {ReturnType<typeof setTimeout> | null} */
+let autoMaintenanceStartupTimerId = null;
+
+async function pullAllMarketplaceSourcesQuiet() {
+  const cfg = loadConfig();
+  if (!cfg.autoPullMarketplaceSources || cfg.marketplaceSources.length === 0) return;
+  const userData = app.getPath('userData');
+  let changed = false;
+  const next = {
+    ...cfg,
+    marketplaceSources: cfg.marketplaceSources.map((s) => ({ ...s })),
+  };
+  for (const s of next.marketplaceSources) {
+    const dest = marketplace.sourcePath(userData, s.id);
+    try {
+      await marketplace.cloneOrPull(s.url, dest);
+      s.lastPulledAt = new Date().toISOString();
+      changed = true;
+    } catch (e) {
+      console.warn(
+        '[Skill Guard] 定时拉取订阅失败:',
+        s.url,
+        e instanceof Error ? e.message : e,
+      );
+    }
+  }
+  if (changed) writeConfigToDisk(next);
+}
+
+async function applyAutoUpdatesToInstalledSkills() {
+  const cfg = loadConfig();
+  if (!cfg.autoUpdateInstalledSkills) return;
+  if (!cfg.marketplaceSources.length) return;
+
+  const userData = app.getPath('userData');
+  const { skills: mpSkills } = await buildMarketplaceSkillsList(userData, cfg.marketplaceSources);
+  const homedirAbs = os.homedir();
+
+  function installOne(u) {
+    skillGuard.installMarketplaceSkill({
+      marketplaceRootAbs: path.resolve(u.marketplaceRootPath),
+      skillRelPosix: u.skillRelPath,
+      installCursor: u.installCursor,
+      installCodex: u.installCodex,
+      installClaude: u.installClaude,
+      scope: u.scope,
+      repoRootAbs: u.scope === 'repo' && u.repoPath ? path.resolve(u.repoPath) : undefined,
+      homedirAbs,
+    });
+  }
+
+  try {
+    const scan = await skillGuard.scanGlobal();
+    const globalWith = skillGuard.attachMarketplaceUpdateToInstalledSkills(
+      scan.root,
+      scan.skills,
+      mpSkills,
+    );
+    for (const sk of globalWith) {
+      if (!sk.updateFromMarketplace) continue;
+      try {
+        installOne(sk.updateFromMarketplace);
+      } catch (e) {
+        console.warn(
+          '[Skill Guard] 自动更新全局技能失败:',
+          sk.name,
+          e instanceof Error ? e.message : e,
+        );
+      }
+    }
+  } catch (e) {
+    console.warn('[Skill Guard] 自动更新：全局扫描失败', e instanceof Error ? e.message : e);
+  }
+
+  for (const r of cfg.repos) {
+    const q = getRepoQueue(r.path);
+    await q(async () => {
+      try {
+        const scan = await skillGuard.scanRepo(r.path);
+        const repoWith = skillGuard.attachMarketplaceUpdateToInstalledSkills(
+          scan.root,
+          scan.skills,
+          mpSkills,
+        );
+        for (const sk of repoWith) {
+          if (!sk.updateFromMarketplace) continue;
+          try {
+            installOne(sk.updateFromMarketplace);
+          } catch (e) {
+            console.warn(
+              '[Skill Guard] 自动更新仓库技能失败:',
+              r.path,
+              sk.name,
+              e instanceof Error ? e.message : e,
+            );
+          }
+        }
+      } catch (e) {
+        console.warn(
+          '[Skill Guard] 自动更新：仓库扫描失败',
+          r.path,
+          e instanceof Error ? e.message : e,
+        );
+      }
+    });
+  }
+}
+
+async function runAutoMaintenanceOnce() {
+  try {
+    const cfg = loadConfig();
+    if (cfg.autoPullMarketplaceSources && cfg.marketplaceSources.length > 0) {
+      await pullAllMarketplaceSourcesQuiet();
+    }
+    if (cfg.autoUpdateInstalledSkills) {
+      await applyAutoUpdatesToInstalledSkills();
+    }
+  } catch (e) {
+    console.warn('[Skill Guard] 自动维护执行异常', e instanceof Error ? e.message : e);
+  }
+}
+
+function scheduleAutoMaintenance() {
+  if (autoMaintenanceIntervalId != null) {
+    clearInterval(autoMaintenanceIntervalId);
+    autoMaintenanceIntervalId = null;
+  }
+  if (autoMaintenanceStartupTimerId != null) {
+    clearTimeout(autoMaintenanceStartupTimerId);
+    autoMaintenanceStartupTimerId = null;
+  }
+
+  const cfg = loadConfig();
+  const pullOn = cfg.autoPullMarketplaceSources && cfg.marketplaceSources.length > 0;
+  const updateOn = cfg.autoUpdateInstalledSkills;
+  if (!pullOn && !updateOn) return;
+
+  autoMaintenanceStartupTimerId = setTimeout(() => {
+    autoMaintenanceStartupTimerId = null;
+    void runAutoMaintenanceOnce();
+  }, AUTO_MAINTENANCE_STARTUP_DELAY_MS);
+
+  if (pullOn) {
+    autoMaintenanceIntervalId = setInterval(() => void runAutoMaintenanceOnce(), AUTO_PULL_INTERVAL_MS);
   }
 }
 
@@ -111,10 +291,15 @@ async function buildMarketplaceSkillsList(userData, sources) {
   return { skills, issues };
 }
 
-function saveConfig(cfg) {
+function writeConfigToDisk(cfg) {
   const p = configPath();
   fs.mkdirSync(path.dirname(p), { recursive: true });
   fs.writeFileSync(p, JSON.stringify(cfg, null, 2), 'utf8');
+}
+
+function saveConfig(cfg) {
+  writeConfigToDisk(cfg);
+  scheduleAutoMaintenance();
 }
 
 /** @type {Map<string, (fn: () => Promise<unknown>) => Promise<unknown>>} */
@@ -167,6 +352,7 @@ app.whenReady().then(() => {
     Menu.setApplicationMenu(null);
   }
   createWindow();
+  scheduleAutoMaintenance();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -184,6 +370,8 @@ ipcMain.handle('app:userProfile', () => {
     homedir: os.homedir(),
   };
 });
+
+ipcMain.handle('app:version', () => app.getVersion());
 
 ipcMain.handle('config:load', () => loadConfig());
 

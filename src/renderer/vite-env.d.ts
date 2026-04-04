@@ -73,6 +73,10 @@ export type AppConfig = {
   marketplaceSources?: MarketplaceSourceConfig[];
   /** GET 返回推荐源 JSON 的地址（长按「推荐」配置） */
   marketplaceRecommendIndexUrl?: string;
+  /** 当订阅缓存与已安装技能不一致时，自动用订阅缓存覆盖安装目录（全局 + 已登记仓库） */
+  autoUpdateInstalledSkills?: boolean;
+  /** 应用启动约 10 秒后拉取一次订阅源，之后每 30 分钟拉取；失败仅打日志 */
+  autoPullMarketplaceSources?: boolean;
 };
 
 export type UserProfile = {
@@ -86,6 +90,8 @@ declare global {
       /** 兜底 IPC，勿在业务中优先使用 */
       _invoke?: (channel: string, data?: unknown) => Promise<unknown>;
       getUserProfile: () => Promise<UserProfile>;
+      /** 与 package.json version 一致（Electron app.getVersion） */
+      getAppVersion: () => Promise<string>;
       loadConfig: () => Promise<AppConfig>;
       saveConfig: (cfg: AppConfig) => Promise<{ ok: boolean }>;
       pickRepo: () => Promise<string | null>;

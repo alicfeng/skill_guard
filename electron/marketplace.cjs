@@ -5,7 +5,7 @@ const { resolveGitExecutable, gitNotFoundMessage } = require('./gitResolve.cjs')
 
 /** 未在配置中填写推荐 JSON 地址时使用的内置 GET 源 */
 const DEFAULT_MARKETPLACE_RECOMMEND_INDEX_URL =
-  'https://raw.githubusercontent.com/alicfeng/skill_box/refs/heads/main/sub.json';
+  'https://raw.githubusercontent.com/alicfeng/ai_skills_guard/refs/heads/main/subcribe.json';
 
 /**
  * @param {string} url

@@ -1,5 +1,5 @@
 <h1 align="center">
-  <a href="https://github.com/alicfeng/mysql_markdown">
+  <a href="https://github.com/alicfeng/ai_skill_guard">
   Skill Guard
   </a>
 </h1>
@@ -7,11 +7,11 @@
   Skill Guard 一款基于 electron 构建并支持管理和订阅 ai skills 的桌面管理工具🛠
 </p>
 <p align="center">
-  <a href="https://github.com/alicfeng/skill_guard/releases">
-    <img src="https://img.shields.io/github/release/alicfeng/skill_guard" alt="release version">
+  <a href="https://github.com/alicfeng/ai_skill_guard/releases">
+    <img src="https://img.shields.io/github/release/alicfeng/ai_skill_guard" alt="release version">
   </a>
-  <a href="https://github.com/alicfeng/skill_guard">
-    <img src="https://img.shields.io/github/actions/workflow/status/alicfeng/skill_guard/ci.yml?branch=main" alt="build status">
+  <a href="https://github.com/alicfeng/ai_skill_guard">
+    <img src="https://img.shields.io/github/actions/workflow/status/alicfeng/ai_skill_guard/ci.yml?branch=main" alt="build status">
   </a>
   <a href="https://lbesson.mit-license.org">
     <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="open source">
@@ -31,7 +31,7 @@
 
 ## 🪤 快速安装
 
-打开 [**Releases**](https://github.com/alicfeng/skill_guard/releases) 即可下载，支持 `Linux`、`mac`、`windows`。选择对应系统自行下载安装，也可下载源码编译运行。
+打开 [**Releases**](https://github.com/alicfeng/skill_guard/releases) 即可下载，支持 `Linux/Mac/Windows`。选择对应系统自行下载安装，也可下载源码编译运行。
 
 
 
@@ -39,7 +39,8 @@
 
 - 用户全局技能列表
 
-<img src="doc/imgs/user_skills_list.png" alt="用户全局技能列表" style="zoom: 50%;" />
+  ![用户全局技能列表](doc/imgs/user_skills_list.png)
+
 
 - 工程仓库技能列表
 
