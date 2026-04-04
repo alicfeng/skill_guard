@@ -24,7 +24,7 @@ function configPath() {
   return path.join(app.getPath('userData'), 'config.json');
 }
 
-/** 订阅源自动拉取：固定间隔（毫秒） */
+/** 自动维护定时器间隔：含可选 git pull + 可选覆盖已安装技能（毫秒） */
 const AUTO_PULL_INTERVAL_MS = 30 * 60 * 1000;
 /** 启动后延迟再执行首次自动拉取/更新，避免与窗口初始化抢资源 */
 const AUTO_MAINTENANCE_STARTUP_DELAY_MS = 10000;
@@ -181,10 +181,11 @@ async function applyAutoUpdatesToInstalledSkills() {
 
 async function runAutoMaintenanceOnce() {
   try {
-    const cfg = loadConfig();
+    let cfg = loadConfig();
     if (cfg.autoPullMarketplaceSources && cfg.marketplaceSources.length > 0) {
       await pullAllMarketplaceSourcesQuiet();
     }
+    cfg = loadConfig();
     if (cfg.autoUpdateInstalledSkills) {
       await applyAutoUpdatesToInstalledSkills();
     }
@@ -213,7 +214,8 @@ function scheduleAutoMaintenance() {
     void runAutoMaintenanceOnce();
   }, AUTO_MAINTENANCE_STARTUP_DELAY_MS);
 
-  if (pullOn) {
+  /** 仅开「自动更新」时也必须定时跑，否则只在启动后约 10 秒执行一次，之后永不再同步 */
+  if (pullOn || updateOn) {
     autoMaintenanceIntervalId = setInterval(() => void runAutoMaintenanceOnce(), AUTO_PULL_INTERVAL_MS);
   }
 }
@@ -372,6 +374,12 @@ ipcMain.handle('app:userProfile', () => {
 });
 
 ipcMain.handle('app:version', () => app.getVersion());
+
+/** 保存设置等场景下立即执行一轮拉取（若开启）+ 自动覆盖已安装技能（若开启） */
+ipcMain.handle('app:runAutoMaintenance', async () => {
+  await runAutoMaintenanceOnce();
+  return { ok: true };
+});
 
 ipcMain.handle('config:load', () => loadConfig());
 
@@ -564,6 +572,9 @@ ipcMain.handle('marketplace:refreshRemote', async () => {
   }
   saveConfig(cfg);
   const { skills, issues } = await buildMarketplaceSkillsList(userData, cfg.marketplaceSources);
+  if (loadConfig().autoUpdateInstalledSkills) {
+    await applyAutoUpdatesToInstalledSkills();
+  }
   return { config: cfg, skills, issues };
 });
 

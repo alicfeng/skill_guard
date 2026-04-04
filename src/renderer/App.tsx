@@ -26,7 +26,7 @@ const api = window.skillGuardApi;
 
 /** 与主进程 `marketplace.cjs` 中内置默认一致，用于文案与占位 */
 const DEFAULT_MARKETPLACE_RECOMMEND_INDEX_URL =
-  'https://raw.githubusercontent.com/alicfeng/ai_skills_guard/refs/heads/main/subcribe.json';
+  'https://raw.githubusercontent.com/alicfeng/ai_skill_guard/refs/heads/subscribe/subscribe.json';
 
 async function ipcListSkillTree(rootPath: string, skillRelPath: string, state: SkillRow['state']) {
   if (typeof api.listSkillTree === 'function') {
@@ -713,6 +713,14 @@ export default function App() {
       if (sourcesListSubTab === 'recommend') {
         void loadRecommendListForTab();
       }
+      if (next.autoUpdateInstalledSkills || next.autoPullMarketplaceSources) {
+        if (typeof api.runAutoMaintenance === 'function') {
+          void api.runAutoMaintenance().then(() => {
+            if (mainTab === 'global') void refreshGlobalSkills();
+            else if (mainTab === 'repo' && activeRepo) void refreshRepoSkills(activeRepo);
+          });
+        }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -777,6 +785,10 @@ export default function App() {
       setConfig(data.config);
       setMarketplaceSkills(data.skills);
       setMarketplaceIssues(data.issues ?? []);
+      if (data.config.autoUpdateInstalledSkills) {
+        if (mainTab === 'global') void refreshGlobalSkills();
+        else if (mainTab === 'repo' && activeRepo) void refreshRepoSkills(activeRepo);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -1845,7 +1857,7 @@ export default function App() {
                 <p>
                   将复制技能整个文件夹到所选范围内的 <span className="mono">.cursor/skills-cursor</span>、{' '}
                   <span className="mono">.codex/skills</span> 或 <span className="mono">.claude/skills</span>
-                  。若目标位置已有同名技能文件夹，将先删除再写入（覆盖为当前订阅源版本）。
+                  。若目标位置已有同名技能文件夹，会用当前订阅源缓存中的版本直接覆盖本机目录。
                 </p>
               </div>
 
