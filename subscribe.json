@@ -7,8 +7,14 @@
     },
     {
       "name":"openai curated skills",
-      "url":"https://github.com/openai/skills",
+      "url":"https://github.com/openai/skills.git",
       "path":"skills/.curated",
       "description":"openai 精选 skill 集合"
+    },
+    {
+      "name":"manus-style planning skills",
+      "url":"https://github.com/OthmanAdi/planning-with-files.git",
+      "path":"skills/",
+      "description":"价值2个亿的skills"
     }
   ]
