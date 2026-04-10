@@ -16,5 +16,11 @@
       "url":"https://github.com/OthmanAdi/planning-with-files.git",
       "path":"skills",
       "description":"价值2个亿的skills"
+    },
+    {
+      "name":"an autonomous AI agent loop skills",
+      "url":"https://github.com/snarktank/ralph.git",
+      "path":"skills",
+      "description":"an autonomous AI agent loop skills"
     }
   ]
